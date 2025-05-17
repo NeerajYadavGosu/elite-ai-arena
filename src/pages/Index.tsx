@@ -27,6 +27,9 @@ const Index = () => {
               <Button asChild size="lg" className="gradient-bg">
                 <Link to="/challenges">Start Building</Link>
               </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link to="/host-challenge">Host Challenge</Link>
+              </Button>
             </div>
           </div>
         </section>

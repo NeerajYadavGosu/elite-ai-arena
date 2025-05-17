@@ -9,6 +9,7 @@ import Challenges from "./pages/Challenges";
 import ChallengeDetail from "./pages/ChallengeDetail";
 import SubmissionForm from "./pages/SubmissionForm";
 import Leaderboard from "./pages/Leaderboard";
+import HostChallenge from "./pages/HostChallenge";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,8 +25,8 @@ const App = () => (
           <Route path="/challenges" element={<Challenges />} />
           <Route path="/challenges/:id" element={<ChallengeDetail />} />
           <Route path="/submit/:id" element={<SubmissionForm />} />
-          <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/leaderboard/:id" element={<Leaderboard />} />
+          <Route path="/host-challenge" element={<HostChallenge />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

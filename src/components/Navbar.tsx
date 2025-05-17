@@ -10,12 +10,6 @@ const Navbar = () => {
           <span className="text-2xl font-bold gradient-text">Elite Builder AI</span>
         </Link>
         
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/challenges" className="text-foreground/70 hover:text-foreground transition-colors">
-            Challenges
-          </Link>
-        </nav>
-        
         <div className="flex items-center space-x-4">
           <Button variant="outline">
             Sign in with GitHub
