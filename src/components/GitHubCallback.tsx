@@ -1,8 +1,8 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { handleOAuthCallback } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const GitHubCallback = () => {
   const navigate = useNavigate();
@@ -10,37 +10,29 @@ const GitHubCallback = () => {
 
   useEffect(() => {
     const processCallback = async () => {
-      // Get the auth code from URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      if (!code) {
-        setError('No authorization code provided');
-        toast({
-          title: "Authentication Error",
-          description: "No authorization code provided",
-          variant: "destructive",
-        });
-        return;
-      }
-
       try {
-        // Exchange the code for user data
-        const userData = await handleOAuthCallback(code);
+        // Supabase handles OAuth exchanging the code for a token
+        // We just need to check if we have a session after we're redirected
+        const { data, error } = await supabase.auth.getSession();
         
-        // Store the user data in localStorage
-        localStorage.setItem('user', JSON.stringify(userData));
+        if (error) {
+          throw error;
+        }
         
-        // Get redirect path and navigate back
-        const redirectPath = localStorage.getItem('authRedirect') || '/';
-        localStorage.removeItem('authRedirect');
-        
-        toast({
-          title: "Signed in successfully",
-          description: `Welcome, ${userData.name || userData.username}!`,
-        });
-        
-        navigate(redirectPath);
+        if (data.session) {
+          // Get redirect path and navigate back
+          const redirectPath = localStorage.getItem('authRedirect') || '/';
+          localStorage.removeItem('authRedirect');
+          
+          toast({
+            title: "Signed in successfully",
+            description: `Welcome${data.session.user.user_metadata.name ? ', ' + data.session.user.user_metadata.name : ''}!`,
+          });
+          
+          navigate(redirectPath);
+        } else {
+          throw new Error("No session available after authentication");
+        }
       } catch (error) {
         console.error('Authentication error:', error);
         setError('Failed to authenticate with GitHub');

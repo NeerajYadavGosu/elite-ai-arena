@@ -9,7 +9,239 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      challenges: {
+        Row: {
+          created_at: string
+          description: string
+          difficulty: string | null
+          end_date: string
+          host_id: string
+          id: string
+          prize_pool: string | null
+          requirements: string | null
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          difficulty?: string | null
+          end_date: string
+          host_id: string
+          id?: string
+          prize_pool?: string | null
+          requirements?: string | null
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          difficulty?: string | null
+          end_date?: string
+          host_id?: string
+          id?: string
+          prize_pool?: string | null
+          requirements?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenges_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "hosts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback: {
+        Row: {
+          ai_feedback: Json | null
+          created_at: string
+          id: string
+          reviewer_feedback: Json | null
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          created_at?: string
+          id?: string
+          reviewer_feedback?: Json | null
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_feedback?: Json | null
+          created_at?: string
+          id?: string
+          reviewer_feedback?: Json | null
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: true
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hosts: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hosts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participants: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      submissions: {
+        Row: {
+          ai_score: number | null
+          challenge_id: string
+          created_at: string
+          demo_url: string
+          description: string | null
+          final_score: number | null
+          github_url: string
+          id: string
+          loom_url: string
+          name: string
+          participant_id: string
+          reviewer_score: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_score?: number | null
+          challenge_id: string
+          created_at?: string
+          demo_url: string
+          description?: string | null
+          final_score?: number | null
+          github_url: string
+          id?: string
+          loom_url: string
+          name: string
+          participant_id: string
+          reviewer_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_score?: number | null
+          challenge_id?: string
+          created_at?: string
+          demo_url?: string
+          description?: string | null
+          final_score?: number | null
+          github_url?: string
+          id?: string
+          loom_url?: string
+          name?: string
+          participant_id?: string
+          reviewer_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
