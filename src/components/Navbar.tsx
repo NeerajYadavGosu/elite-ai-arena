@@ -1,7 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Github, LogIn, UserRound } from "lucide-react";
+import { Github } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   DropdownMenu,
@@ -19,7 +19,7 @@ const Navbar = () => {
   
   const handleGitHubSignIn = async () => {
     try {
-      console.log("Initiating GitHub sign-in");
+      console.log("Initiating GitHub sign-in from navbar");
       // Save current URL to redirect back after login
       localStorage.setItem('authRedirect', window.location.pathname);
       await signInWithGitHub();

@@ -108,7 +108,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signInWithGitHub = async (): Promise<void> => {
     try {
       console.log("Starting GitHub sign-in flow");
-      const redirectUrl = `${window.location.origin}/github-callback`;
+      const appUrl = window.location.origin;
+      const redirectUrl = `${appUrl}/github-callback`;
       console.log("Redirect URL:", redirectUrl);
       
       // Save the current URL to redirect back after login

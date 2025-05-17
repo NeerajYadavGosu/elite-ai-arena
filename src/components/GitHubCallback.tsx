@@ -13,10 +13,8 @@ const GitHubCallback = () => {
     const processCallback = async () => {
       try {
         console.log("Processing GitHub callback");
-        console.log("URL hash:", window.location.hash);
-        console.log("URL search params:", window.location.search);
         
-        // Get URL parameters
+        // Get URL parameters - check both hash and search params
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const queryParams = new URLSearchParams(window.location.search);
         
@@ -28,8 +26,7 @@ const GitHubCallback = () => {
           throw new Error(`${urlError}: ${errorDescription || 'Unknown error'}`);
         }
 
-        // Supabase handles OAuth exchanging the code for a token
-        // We just need to check if we have a session after we're redirected
+        // Exchange the code for a session
         console.log("Getting Supabase session");
         const { data, error } = await supabase.auth.getSession();
         
@@ -38,67 +35,49 @@ const GitHubCallback = () => {
           throw error;
         }
         
-        console.log("Session data:", data.session ? "Session exists" : "No session found");
-        if (data.session) {
-          // Ensure the user profile exists in our profiles table
-          const user = data.session.user;
-          console.log("User authenticated:", user.email);
-          console.log("User data:", user);
+        if (!data.session) {
+          console.log("No session found, trying to exchange auth code...");
           
-          // Check if profile exists
-          console.log("Checking if profile exists for user:", user.id);
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .maybeSingle();
-            
-          if (profileError) {
-            console.error('Error checking profile:', profileError);
+          // Get code from URL
+          const code = queryParams.get('code');
+          if (!code) {
+            throw new Error("No authentication code found in URL");
           }
           
-          console.log("Profile data:", profileData ? "Profile exists" : "No profile found");
-          // If profile doesn't exist, create it
-          if (!profileData) {
-            console.log("Creating new profile for user:", user.id);
-            console.log("User metadata:", user.user_metadata);
-            
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                username: user.user_metadata.user_name || user.user_metadata.preferred_username || null,
-                avatar_url: user.user_metadata.avatar_url,
-                email: user.email
-              });
-              
-            if (insertError) {
-              console.error('Error creating profile:', insertError);
-            } else {
-              console.log("Profile created successfully");
-            }
+          // Try to exchange the code
+          console.log("Exchanging auth code for session");
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          
+          if (exchangeError) {
+            console.error("Code exchange error:", exchangeError);
+            throw exchangeError;
           }
           
-          // Get redirect path and navigate back
-          const redirectPath = localStorage.getItem('authRedirect') || '/';
-          localStorage.removeItem('authRedirect');
+          // Get the session again
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
           
-          console.log("Redirecting to:", redirectPath);
-          toast({
-            title: "Signed in successfully",
-            description: `Welcome${user.user_metadata.name ? ', ' + user.user_metadata.name : ''}!`,
-          });
+          if (sessionError || !sessionData.session) {
+            console.error("Failed to get session after code exchange:", sessionError);
+            throw sessionError || new Error("No session available after code exchange");
+          }
           
-          // Set processing to false before navigating
-          setProcessing(false);
-          navigate(redirectPath);
-        } else {
-          console.error("No session available after authentication");
-          throw new Error("No session available after authentication");
+          console.log("Successfully authenticated after code exchange");
         }
+        
+        console.log("Authentication successful, redirecting...");
+        const redirectPath = localStorage.getItem('authRedirect') || '/';
+        localStorage.removeItem('authRedirect');
+        
+        toast({
+          title: "Signed in successfully",
+          description: "Welcome back!",
+        });
+        
+        setProcessing(false);
+        navigate(redirectPath);
       } catch (error) {
         console.error('Authentication error:', error);
-        setError('Failed to authenticate with GitHub');
+        setError('Failed to authenticate with GitHub. Please try again.');
         toast({
           title: "Authentication Failed",
           description: "Could not authenticate with GitHub. Please try again.",
