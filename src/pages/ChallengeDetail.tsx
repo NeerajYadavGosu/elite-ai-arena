@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Challenge } from "@/components/ChallengeCard";
-import { CalendarIcon, Trophy, Users, Clock } from "lucide-react";
+import { CalendarIcon, Trophy, Users, Clock, Award } from "lucide-react";
 
 // Mock data for challenge details
 const mockChallenges: Record<string, Challenge & { 
@@ -163,7 +163,9 @@ const ChallengeDetail = () => {
                     <Users className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm font-medium">Participants</p>
-                      <p className="text-sm text-muted-foreground">{challenge.participants} registered</p>
+                      <p className="text-sm text-muted-foreground">
+                        {challenge.participants} {challenge.participants === 1 ? "Participant" : "Participants"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -174,9 +176,15 @@ const ChallengeDetail = () => {
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-center pt-2">
+                <CardFooter className="flex flex-col gap-3 pt-2">
                   <Button asChild className="gradient-bg w-full">
                     <Link to={`/submit/${challenge.id}`}>Submit My Solution</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to={`/leaderboard/${challenge.id}`}>
+                      <Award className="mr-2 h-4 w-4" />
+                      View Leaderboard
+                    </Link>
                   </Button>
                 </CardFooter>
               </Card>

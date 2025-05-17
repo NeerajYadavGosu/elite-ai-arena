@@ -25,6 +25,7 @@ const App = () => (
           <Route path="/challenges/:id" element={<ChallengeDetail />} />
           <Route path="/submit/:id" element={<SubmissionForm />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/leaderboard/:id" element={<Leaderboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -1,14 +1,14 @@
 
 const sponsorLogos = [
   { name: "Google", image: "https://skillicons.dev/icons?i=gcp" },
-  { name: "Meta", image: "https://skillicons.dev/icons?i=react" },
-  { name: "Nvidia", image: "https://skillicons.dev/icons?i=tensorflow" },
-  { name: "Oracle", image: "https://skillicons.dev/icons?i=java" },
-  { name: "OpenAI", image: "https://skillicons.dev/icons?i=ai" },
-  { name: "Salesforce", image: "https://skillicons.dev/icons?i=salesforce" },
   { name: "Microsoft", image: "https://skillicons.dev/icons?i=azure" },
-  { name: "Apple", image: "https://skillicons.dev/icons?i=swift" },
-  { name: "Adobe", image: "https://skillicons.dev/icons?i=ps" }
+  { name: "Meta", image: "https://skillicons.dev/icons?i=react" },
+  { name: "NVIDIA", image: "https://skillicons.dev/icons?i=tensorflow" },
+  // Duplicate for continuous scrolling
+  { name: "Google", image: "https://skillicons.dev/icons?i=gcp" },
+  { name: "Microsoft", image: "https://skillicons.dev/icons?i=azure" },
+  { name: "Meta", image: "https://skillicons.dev/icons?i=react" },
+  { name: "NVIDIA", image: "https://skillicons.dev/icons?i=tensorflow" }
 ];
 
 const LogoMarquee = () => {
@@ -17,7 +17,7 @@ const LogoMarquee = () => {
       <div className="flex w-full overflow-x-hidden">
         <div className="logo-scroll">
           <div className="logo-track">
-            {sponsorLogos.map((logo) => (
+            {sponsorLogos.slice(0, 4).map((logo) => (
               <div key={logo.name} className="flex items-center justify-center mx-8">
                 <img 
                   src={logo.image} 
@@ -29,7 +29,7 @@ const LogoMarquee = () => {
             ))}
           </div>
           <div className="logo-track" aria-hidden="true">
-            {sponsorLogos.map((logo) => (
+            {sponsorLogos.slice(4).map((logo) => (
               <div key={`${logo.name}-duplicate`} className="flex items-center justify-center mx-8">
                 <img 
                   src={logo.image} 

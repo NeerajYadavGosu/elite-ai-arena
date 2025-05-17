@@ -25,10 +25,7 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 mt-4">
               <Button asChild size="lg" className="gradient-bg">
-                <Link to="/challenges">View Challenges</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <a href="#">Sign in with GitHub</a>
+                <Link to="/challenges">Start Building</Link>
               </Button>
             </div>
           </div>

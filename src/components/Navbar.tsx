@@ -14,9 +14,6 @@ const Navbar = () => {
           <Link to="/challenges" className="text-foreground/70 hover:text-foreground transition-colors">
             Challenges
           </Link>
-          <Link to="/leaderboard" className="text-foreground/70 hover:text-foreground transition-colors">
-            Leaderboard
-          </Link>
         </nav>
         
         <div className="flex items-center space-x-4">
