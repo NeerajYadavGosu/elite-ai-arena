@@ -13,6 +13,9 @@ const GitHubCallback = () => {
     const processCallback = async () => {
       try {
         console.log("Processing GitHub callback");
+        console.log("URL hash:", window.location.hash);
+        console.log("URL search params:", window.location.search);
+        
         // Get URL parameters
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const queryParams = new URLSearchParams(window.location.search);
@@ -40,6 +43,7 @@ const GitHubCallback = () => {
           // Ensure the user profile exists in our profiles table
           const user = data.session.user;
           console.log("User authenticated:", user.email);
+          console.log("User data:", user);
           
           // Check if profile exists
           console.log("Checking if profile exists for user:", user.id);

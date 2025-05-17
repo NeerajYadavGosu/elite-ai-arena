@@ -18,8 +18,8 @@ type AuthContextType = {
   user: UserData | null;
   session: Session | null;
   loading: boolean;
-  signInWithGitHub: () => void;
-  signOut: () => void;
+  signInWithGitHub: () => Promise<void>;
+  signOut: () => Promise<void>;
   isAuthenticated: boolean;
 };
 
@@ -44,9 +44,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // First set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state changed:", event);
         setSession(currentSession);
         
         if (currentSession?.user) {
+          console.log("User authenticated in onAuthStateChange:", currentSession.user.email);
           // Get the user profile data
           const userData: UserData = {
             id: currentSession.user.id,
@@ -56,8 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             username: currentSession.user.user_metadata.user_name || currentSession.user.user_metadata.preferred_username || '',
           };
           setUser(userData);
+          console.log("User data set:", userData);
         } else {
           setUser(null);
+          console.log("User set to null");
         }
 
         setLoading(false);
@@ -67,10 +71,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Then check for existing session
     const initializeAuth = async () => {
       try {
+        console.log("Checking for existing session");
         const { data } = await supabase.auth.getSession();
         setSession(data.session);
         
         if (data.session?.user) {
+          console.log("Existing session found for:", data.session.user.email);
           // Get the user profile data
           const userData: UserData = {
             id: data.session.user.id,
@@ -80,6 +86,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             username: data.session.user.user_metadata.user_name || data.session.user.user_metadata.preferred_username || '',
           };
           setUser(userData);
+          console.log("User data set from existing session:", userData);
+        } else {
+          console.log("No existing session found");
         }
         
         setLoading(false);
@@ -96,16 +105,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const signInWithGitHub = async () => {
-    // GitHub OAuth parameters
+  const signInWithGitHub = async (): Promise<void> => {
     try {
+      console.log("Starting GitHub sign-in flow");
       const redirectUrl = `${window.location.origin}/github-callback`;
+      console.log("Redirect URL:", redirectUrl);
       
       // Save the current URL to redirect back after login
       localStorage.setItem('authRedirect', window.location.pathname);
       
       // Redirect to GitHub OAuth
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'github',
         options: {
           redirectTo: redirectUrl
@@ -113,8 +123,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) {
+        console.error("Error during GitHub sign-in:", error);
         throw error;
       }
+      
+      console.log("Sign-in initiated successfully:", data);
     } catch (error) {
       console.error('GitHub sign-in error:', error);
       toast({
@@ -122,13 +135,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "Failed to sign in with GitHub. Please try again.",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<void> => {
     try {
+      console.log("Signing out");
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Error during sign out:", error);
+        throw error;
+      }
       
       setUser(null);
       setSession(null);
@@ -138,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       navigate('/');
+      console.log("Sign out successful");
     } catch (error) {
       console.error('Sign out error:', error);
       toast({
@@ -145,6 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: "There was an problem signing you out. Please try again.",
         variant: "destructive",
       });
+      throw error;
     }
   };
 
@@ -162,16 +182,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
-
-// Export a function to handle OAuth callback
-export const handleOAuthCallback = async (code: string) => {
-  try {
-    // In the actual implementation, we just return the code
-    // since Supabase handles the exchange internally
-    return code;
-  } catch (error) {
-    console.error('Authentication error:', error);
-    throw error;
-  }
 };
