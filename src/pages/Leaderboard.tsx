@@ -30,24 +30,28 @@ type Submission = {
   created_at: string;
 };
 
-// Define feedback type
+// Define feedback type with proper JSON structure
+type AiFeedback = {
+  featureCompleteness: number;
+  problemAlignment: number;
+  technicalClarity: number;
+  innovation: number;
+  total: number;
+  comments: string;
+};
+
+type ReviewerFeedback = {
+  uxDesign: number;
+  demoQuality: number;
+  technicalSoundness: number;
+  practicalValue: number;
+  total: number;
+  comments: string;
+};
+
 type Feedback = {
-  aiScore: {
-    featureCompleteness: number;
-    problemAlignment: number;
-    technicalClarity: number;
-    innovation: number;
-    total: number;
-    comments: string;
-  };
-  humanScore: {
-    uxDesign: number;
-    demoQuality: number;
-    technicalSoundness: number;
-    practicalValue: number;
-    total: number;
-    comments: string;
-  };
+  aiScore: AiFeedback;
+  humanScore: ReviewerFeedback;
   finalScore: number;
 };
 
@@ -112,7 +116,7 @@ const Leaderboard = () => {
             participants(user_id)
           `)
           .eq("challenge_id", id)
-          .order("final_score", { ascending: false, nullsLast: true })
+          .order("final_score", { ascending: false })
           .order("created_at", { ascending: true });
           
         if (submissionsError) throw submissionsError;
@@ -170,28 +174,29 @@ const Leaderboard = () => {
       if (feedbackError) throw feedbackError;
       
       if (feedbackData) {
-        // Format feedback data for the dialog
-        const aiScoreData = feedbackData.ai_feedback || {};
-        const reviewerScoreData = feedbackData.reviewer_feedback || {};
+        // Format feedback data for the dialog with proper type casting
+        const aiScoreData = feedbackData.ai_feedback ? (feedbackData.ai_feedback as unknown as AiFeedback) : {
+          featureCompleteness: 0,
+          problemAlignment: 0,
+          technicalClarity: 0,
+          innovation: 0,
+          total: 0,
+          comments: ""
+        };
+        
+        const reviewerScoreData = feedbackData.reviewer_feedback ? (feedbackData.reviewer_feedback as unknown as ReviewerFeedback) : {
+          uxDesign: 0,
+          demoQuality: 0,
+          technicalSoundness: 0,
+          practicalValue: 0,
+          total: 0,
+          comments: ""
+        };
         
         const feedback: Feedback = {
-          aiScore: {
-            featureCompleteness: aiScoreData.featureCompleteness || 0,
-            problemAlignment: aiScoreData.problemAlignment || 0,
-            technicalClarity: aiScoreData.technicalClarity || 0,
-            innovation: aiScoreData.innovation || 0,
-            total: aiScoreData.total || 0,
-            comments: aiScoreData.comments || ""
-          },
-          humanScore: {
-            uxDesign: reviewerScoreData.uxDesign || 0,
-            demoQuality: reviewerScoreData.demoQuality || 0,
-            technicalSoundness: reviewerScoreData.technicalSoundness || 0,
-            practicalValue: reviewerScoreData.practicalValue || 0,
-            total: reviewerScoreData.total || 0,
-            comments: reviewerScoreData.comments || ""
-          },
-          finalScore: (aiScoreData.total || 0) + (reviewerScoreData.total || 0)
+          aiScore: aiScoreData,
+          humanScore: reviewerScoreData,
+          finalScore: aiScoreData.total + reviewerScoreData.total
         };
         
         setOpenFeedback(feedback);
