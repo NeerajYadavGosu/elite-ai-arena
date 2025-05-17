@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,6 +9,26 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Download, Medal, ChevronLeft, Code, UserCheck } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+
+// Define types for challenge and submissions
+type Challenge = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+type Submission = {
+  id: string;
+  name: string;
+  participant_id: string;
+  ai_score: number | null;
+  reviewer_score: number | null;
+  final_score: number | null;
+  status: string;
+  created_at: string;
+};
 
 // Define feedback type
 type Feedback = {
@@ -31,28 +51,17 @@ type Feedback = {
   finalScore: number;
 };
 
-// Mock data for challenge-specific leaderboards
-const mockChallengeLeaderboards: Record<string, {
-  challengeName: string,
-  participants: Array<{
-    id: string,
-    rank: number, 
-    name: string, 
-    aiScore: number, 
-    reviewerScore: number, 
-    finalScore: number,
-    isCurrentUser?: boolean,
-    feedback?: Feedback
-  }>
-}> = {
-  "1": {
-    challengeName: "AI-powered code review assistant",
-    participants: []
-  },
-  "2": {
-    challengeName: "Next-gen image generation API",
-    participants: []
-  }
+// Leaderboard entry type
+type LeaderboardEntry = {
+  id: string;
+  rank: number;
+  name: string;
+  aiScore: number;
+  reviewerScore: number;
+  finalScore: number;
+  participantId: string;
+  isCurrentUser?: boolean;
+  feedback?: Feedback;
 };
 
 const Leaderboard = () => {
@@ -61,27 +70,176 @@ const Leaderboard = () => {
   const [openFeedback, setOpenFeedback] = useState<Feedback | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [challengeData, setChallengeData] = useState<{
+    challengeName: string,
+    participants: LeaderboardEntry[]
+  }>({
+    challengeName: "",
+    participants: []
+  });
   
-  // Get challenge data based on ID, or default to first challenge if no ID
-  const challengeData = id ? mockChallengeLeaderboards[id] : mockChallengeLeaderboards["1"];
+  // Fetch challenge and submissions data
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      
+      try {
+        // Fetch challenge details
+        const { data: challengeData, error: challengeError } = await supabase
+          .from("challenges")
+          .select("title")
+          .eq("id", id)
+          .single();
+          
+        if (challengeError) throw challengeError;
+        if (!challengeData) throw new Error("Challenge not found");
+        
+        // Fetch submissions with scores for this challenge
+        const { data: submissionsData, error: submissionsError } = await supabase
+          .from("submissions")
+          .select(`
+            id, 
+            name, 
+            ai_score, 
+            reviewer_score, 
+            final_score, 
+            status,
+            created_at,
+            participant_id,
+            participants(user_id)
+          `)
+          .eq("challenge_id", id)
+          .order("final_score", { ascending: false, nullsLast: true })
+          .order("created_at", { ascending: true });
+          
+        if (submissionsError) throw submissionsError;
+        
+        // Format the data for the leaderboard
+        const leaderboardEntries: LeaderboardEntry[] = submissionsData
+          .filter(submission => submission.status === "evaluated" || submission.status === "submitted")
+          .map((submission, index) => {
+            // Determine if this submission belongs to the current user
+            const isCurrentUser = user && submission.participants?.user_id === user.id;
+            
+            return {
+              id: submission.id,
+              rank: index + 1,
+              name: submission.name,
+              aiScore: submission.ai_score || 0,
+              reviewerScore: submission.reviewer_score || 0,
+              finalScore: submission.final_score || 0,
+              participantId: submission.participant_id,
+              isCurrentUser,
+              // We'll fetch feedback separately when needed
+            };
+          });
+          
+        setChallengeData({
+          challengeName: challengeData.title,
+          participants: leaderboardEntries
+        });
+        
+      } catch (error) {
+        console.error("Error fetching leaderboard data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load leaderboard data.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [id, user]);
   
   // Open feedback dialog
-  const handleOpenFeedback = (participantId: string) => {
-    const participant = challengeData?.participants.find(p => p.id === participantId);
-    if (participant?.feedback) {
-      setOpenFeedback(participant.feedback);
-      setSelectedParticipantId(participantId);
+  const handleOpenFeedback = async (submissionId: string) => {
+    try {
+      // Fetch feedback data from Supabase
+      const { data: feedbackData, error: feedbackError } = await supabase
+        .from("feedback")
+        .select("*")
+        .eq("submission_id", submissionId)
+        .maybeSingle();
+      
+      if (feedbackError) throw feedbackError;
+      
+      if (feedbackData) {
+        // Format feedback data for the dialog
+        const aiScoreData = feedbackData.ai_feedback || {};
+        const reviewerScoreData = feedbackData.reviewer_feedback || {};
+        
+        const feedback: Feedback = {
+          aiScore: {
+            featureCompleteness: aiScoreData.featureCompleteness || 0,
+            problemAlignment: aiScoreData.problemAlignment || 0,
+            technicalClarity: aiScoreData.technicalClarity || 0,
+            innovation: aiScoreData.innovation || 0,
+            total: aiScoreData.total || 0,
+            comments: aiScoreData.comments || ""
+          },
+          humanScore: {
+            uxDesign: reviewerScoreData.uxDesign || 0,
+            demoQuality: reviewerScoreData.demoQuality || 0,
+            technicalSoundness: reviewerScoreData.technicalSoundness || 0,
+            practicalValue: reviewerScoreData.practicalValue || 0,
+            total: reviewerScoreData.total || 0,
+            comments: reviewerScoreData.comments || ""
+          },
+          finalScore: (aiScoreData.total || 0) + (reviewerScoreData.total || 0)
+        };
+        
+        setOpenFeedback(feedback);
+        setSelectedParticipantId(submissionId);
+      } else {
+        // If no feedback found, show a message
+        toast({
+          title: "No feedback available",
+          description: "This submission has not been evaluated yet.",
+        });
+        setOpenFeedback(null);
+      }
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load feedback data.",
+        variant: "destructive",
+      });
     }
   };
   
   // Check if user can download certificate
   const canDownloadCertificate = (participantId: string) => {
     if (!user) return false;
-    return participantId === user.id; // In a real app, this would check if the participant is the current user
+    
+    // In a real app, this would check if the participant is the current user
+    const submission = challengeData.participants.find(p => p.participantId === participantId);
+    return submission?.isCurrentUser === true && submission.finalScore >= 70; // Example threshold
   };
   
-  // If no challenge data found, show "not found" message
-  if (!challengeData) {
+  // If no challenge data found or still loading, show appropriate message
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Loading leaderboard...</h1>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
+  // If challenge not found
+  if (!challengeData.challengeName) {
     return (
       <div className="flex min-h-screen flex-col">
         <Navbar />
@@ -145,7 +303,7 @@ const Leaderboard = () => {
                   </thead>
                   <tbody>
                     {challengeData.participants.map((entry) => (
-                      <tr key={entry.rank} className="border-t border-border hover:bg-muted/20">
+                      <tr key={entry.rank} className={`border-t border-border hover:bg-muted/20 ${entry.isCurrentUser ? "bg-primary/5" : ""}`}>
                         <td className="py-3 px-4">
                           {entry.rank <= 3 ? (
                             <div className="flex items-center">
@@ -175,7 +333,7 @@ const Leaderboard = () => {
                             View Report
                           </Button>
                           
-                          {canDownloadCertificate(entry.id) && (
+                          {canDownloadCertificate(entry.participantId) && (
                             <Button size="sm" variant="ghost" className="gap-1">
                               <Download className="h-4 w-4" />
                               <span className="hidden sm:inline">Certificate</span>

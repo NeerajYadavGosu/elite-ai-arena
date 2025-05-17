@@ -21,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Github } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define the form schema
 const formSchema = z.object({
@@ -43,7 +44,7 @@ const SubmissionForm = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { isAuthenticated, signInWithGitHub } = useAuth();
+  const { user, isAuthenticated, signInWithGitHub } = useAuth();
   
   // Initialize the form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -69,8 +70,8 @@ const SubmissionForm = () => {
   }, [isAuthenticated]);
   
   // Form submission handler
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!isAuthenticated) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!isAuthenticated || !user) {
       toast({
         title: "Authentication Required",
         description: "You must be signed in to submit a solution.",
@@ -79,11 +80,64 @@ const SubmissionForm = () => {
       return;
     }
     
+    if (!id) {
+      toast({
+        title: "Error",
+        description: "Challenge ID is missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate API call with a timeout
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // First, check if user is already a participant or create a new participant entry
+      let participantId;
+      const { data: participantData, error: participantError } = await supabase
+        .from("participants")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+        
+      if (participantError) {
+        throw participantError;
+      }
+      
+      // If not a participant yet, create a new participant entry
+      if (!participantData) {
+        const { data: newParticipantData, error: newParticipantError } = await supabase
+          .from("participants")
+          .insert({ user_id: user.id })
+          .select("id")
+          .single();
+          
+        if (newParticipantError) {
+          throw newParticipantError;
+        }
+        
+        participantId = newParticipantData.id;
+      } else {
+        participantId = participantData.id;
+      }
+      
+      // Insert the submission
+      const { error: submissionError } = await supabase
+        .from("submissions")
+        .insert({
+          name: values.name,
+          github_url: values.githubUrl,
+          loom_url: values.loomUrl,
+          demo_url: values.demoUrl,
+          description: values.description || "",
+          challenge_id: id,
+          participant_id: participantId,
+          status: "submitted",
+        });
+        
+      if (submissionError) {
+        throw submissionError;
+      }
       
       toast({
         title: "Submission Successful",
@@ -92,7 +146,16 @@ const SubmissionForm = () => {
       
       // Redirect to leaderboard
       navigate(`/leaderboard/${id}`);
-    }, 1500);
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "There was an error submitting your solution. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (

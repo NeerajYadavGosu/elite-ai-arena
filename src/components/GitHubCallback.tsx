@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 const GitHubCallback = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
+  const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
     const processCallback = async () => {
@@ -20,15 +21,47 @@ const GitHubCallback = () => {
         }
         
         if (data.session) {
+          // Ensure the user profile exists in our profiles table
+          const user = data.session.user;
+          
+          // Check if profile exists
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+            
+          if (profileError) {
+            console.error('Error checking profile:', profileError);
+          }
+          
+          // If profile doesn't exist, create it
+          if (!profileData) {
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                username: user.user_metadata.user_name || user.user_metadata.preferred_username || null,
+                avatar_url: user.user_metadata.avatar_url,
+                email: user.email
+              });
+              
+            if (insertError) {
+              console.error('Error creating profile:', insertError);
+            }
+          }
+          
           // Get redirect path and navigate back
           const redirectPath = localStorage.getItem('authRedirect') || '/';
           localStorage.removeItem('authRedirect');
           
           toast({
             title: "Signed in successfully",
-            description: `Welcome${data.session.user.user_metadata.name ? ', ' + data.session.user.user_metadata.name : ''}!`,
+            description: `Welcome${user.user_metadata.name ? ', ' + user.user_metadata.name : ''}!`,
           });
           
+          // Set processing to false before navigating
+          setProcessing(false);
           navigate(redirectPath);
         } else {
           throw new Error("No session available after authentication");
@@ -41,6 +74,7 @@ const GitHubCallback = () => {
           description: "Could not authenticate with GitHub. Please try again.",
           variant: "destructive",
         });
+        setProcessing(false);
       }
     };
 
@@ -63,6 +97,9 @@ const GitHubCallback = () => {
           </div>
         ) : (
           <div>
+            <div className="mb-4 relative flex items-center justify-center">
+              <div className="h-16 w-16 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+            </div>
             <h1 className="text-2xl font-bold mb-4">Authenticating...</h1>
             <p className="text-muted-foreground">Please wait while we complete the authentication process.</p>
           </div>
