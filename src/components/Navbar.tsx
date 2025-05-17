@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { GitHub } from "lucide-react";
+import { Github } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface AuthUser {
@@ -86,7 +86,7 @@ const Navbar = () => {
             </div>
           ) : (
             <Button variant="outline" onClick={handleGitHubLogin}>
-              <GitHub className="mr-2 h-4 w-4" />
+              <Github className="mr-2 h-4 w-4" />
               Sign in with GitHub
             </Button>
           )}
