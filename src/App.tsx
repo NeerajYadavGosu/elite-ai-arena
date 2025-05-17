@@ -11,6 +11,8 @@ import SubmissionForm from "./pages/SubmissionForm";
 import Leaderboard from "./pages/Leaderboard";
 import HostChallenge from "./pages/HostChallenge";
 import NotFound from "./pages/NotFound";
+import GitHubCallback from "./components/GitHubCallback";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -20,15 +22,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/challenges" element={<Challenges />} />
-          <Route path="/challenges/:id" element={<ChallengeDetail />} />
-          <Route path="/submit/:id" element={<SubmissionForm />} />
-          <Route path="/leaderboard/:id" element={<Leaderboard />} />
-          <Route path="/host-challenge" element={<HostChallenge />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/challenges" element={<Challenges />} />
+            <Route path="/challenges/:id" element={<ChallengeDetail />} />
+            <Route path="/submit/:id" element={<SubmissionForm />} />
+            <Route path="/leaderboard/:id" element={<Leaderboard />} />
+            <Route path="/host-challenge" element={<HostChallenge />} />
+            <Route path="/github-callback" element={<GitHubCallback />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

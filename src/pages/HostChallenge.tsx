@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -25,14 +25,56 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar, Clock, Trophy } from "lucide-react";
+import { Calendar, Clock, Trophy, Github, LogIn } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 const HostChallenge = () => {
   const [activeTab, setActiveTab] = useState("create");
+  const navigate = useNavigate();
+  const { isAuthenticated, signInWithGitHub } = useAuth();
   
   // Mock data for submissions
   const mockSubmissions = [];
 
+  // Check authentication status
+  useEffect(() => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "You must be signed in with GitHub to host a challenge.",
+      });
+    }
+  }, [isAuthenticated]);
+
+  // If not authenticated, show sign-in prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-16 flex items-center justify-center">
+          <div className="max-w-md w-full">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sign in Required</CardTitle>
+                <CardDescription>
+                  You need to sign in with GitHub to host and manage challenges.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center py-8">
+                <Button onClick={signInWithGitHub} className="w-full flex items-center justify-center gap-2">
+                  <Github className="h-4 w-4" />
+                  <span>Sign in with GitHub</span>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+  
   return (
     <div className="flex min-h-screen flex-col">
       <Navbar />
