@@ -1,12 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Medal, ChevronLeft } from "lucide-react";
+import { Download, Medal, ChevronLeft, FileText, Bot } from "lucide-react";
 
 // Mock data for challenge-specific leaderboards
 const mockChallengeLeaderboards: Record<string, {
@@ -17,7 +17,8 @@ const mockChallengeLeaderboards: Record<string, {
     aiScore: number, 
     reviewerScore: number, 
     finalScore: number,
-    isCurrentUser?: boolean
+    isCurrentUser?: boolean,
+    userId: string
   }>
 }> = {
   "1": {
@@ -33,6 +34,21 @@ const mockChallengeLeaderboards: Record<string, {
 const Leaderboard = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("all");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Get current user ID from localStorage
+    const user = localStorage.getItem("githubUser");
+    if (user) {
+      try {
+        const parsedUser = JSON.parse(user);
+        setCurrentUserId(parsedUser.id);
+      } catch (e) {
+        console.error("Error parsing user data:", e);
+      }
+    }
+  }, []);
 
   // Get challenge data based on ID, or default to first challenge if no ID
   const challengeData = id ? mockChallengeLeaderboards[id] : mockChallengeLeaderboards["1"];
@@ -87,12 +103,16 @@ const Leaderboard = () => {
                       <th className="text-center py-3 px-4 font-medium">AI Score</th>
                       <th className="text-center py-3 px-4 font-medium">Reviewer Score</th>
                       <th className="text-center py-3 px-4 font-medium">Final Score</th>
-                      <th className="text-right py-3 px-4 font-medium"></th>
+                      <th className="text-right py-3 px-4 font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {challengeData.participants.map((entry) => (
-                      <tr key={entry.rank} className="border-t border-border hover:bg-muted/20">
+                      <tr 
+                        key={entry.rank} 
+                        className={`border-t border-border hover:bg-muted/20 cursor-pointer ${selectedParticipant === entry.userId ? 'bg-muted/30' : ''}`}
+                        onClick={() => setSelectedParticipant(entry.userId)}
+                      >
                         <td className="py-3 px-4">
                           {entry.rank <= 3 ? (
                             <div className="flex items-center">
@@ -113,7 +133,7 @@ const Leaderboard = () => {
                         <td className="py-3 px-4 text-center">{entry.reviewerScore}/100</td>
                         <td className="py-3 px-4 text-center font-semibold">{entry.finalScore}/100</td>
                         <td className="py-3 px-4 text-right">
-                          {entry.isCurrentUser && (
+                          {entry.userId === currentUserId && (
                             <Button size="sm" variant="ghost" className="gap-1">
                               <Download className="h-4 w-4" />
                               <span className="hidden sm:inline">Certificate</span>
@@ -131,6 +151,150 @@ const Leaderboard = () => {
               )}
             </div>
           </Card>
+
+          {selectedParticipant && (
+            <div className="mt-8 mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Detailed Score Report</h2>
+              
+              <Tabs defaultValue="ai-report">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="ai-report" className="gap-1">
+                    <Bot className="h-4 w-4" /> AI Report
+                  </TabsTrigger>
+                  <TabsTrigger value="human-report" className="gap-1">
+                    <FileText className="h-4 w-4" /> Human Review
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="ai-report" className="space-y-4">
+                  <Card className="p-6">
+                    <h3 className="text-lg font-medium mb-3">AI Evaluation</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Feature Completeness</span>
+                          <span className="text-sm font-medium">23/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '92%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Successfully implemented all critical features with minor gaps.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Problem Alignment</span>
+                          <span className="text-sm font-medium">22/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '88%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Solution addresses the core problem effectively.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Technical Clarity</span>
+                          <span className="text-sm font-medium">20/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '80%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Code structure is clean and well-documented.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Innovation</span>
+                          <span className="text-sm font-medium">20/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '80%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Solution provides innovative approach to the problem.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="human-report" className="space-y-4">
+                  <Card className="p-6">
+                    <h3 className="text-lg font-medium mb-3">Human Expert Review</h3>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">UX/UI Design</span>
+                          <span className="text-sm font-medium">24/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '96%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Excellent user experience with intuitive design.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Demo Quality</span>
+                          <span className="text-sm font-medium">22/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '88%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Clear and compelling demonstration of the solution.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Technical Soundness</span>
+                          <span className="text-sm font-medium">21/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '84%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Implementation is robust with good architecture.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">Practical Value</span>
+                          <span className="text-sm font-medium">23/25</span>
+                        </div>
+                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                          <div className="bg-primary h-full rounded-full" style={{ width: '92%' }}></div>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Solution has significant real-world applicability.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t">
+                      <h4 className="text-base font-medium mb-2">Additional Feedback</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Very impressive solution that solves the core problem efficiently. The UI is particularly well-designed and intuitive. Consider adding more data visualization elements to improve the presentation of results. The solution shows excellent potential for real-world implementation.
+                      </p>
+                    </div>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
           
           <div className="max-w-2xl mx-auto bg-muted/30 rounded-lg p-6 mt-12">
             <h2 className="text-xl font-semibold mb-2">How Scoring Works</h2>
