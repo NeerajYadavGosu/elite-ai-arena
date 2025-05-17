@@ -12,19 +12,37 @@ const GitHubCallback = () => {
   useEffect(() => {
     const processCallback = async () => {
       try {
+        console.log("Processing GitHub callback");
+        // Get URL parameters
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const queryParams = new URLSearchParams(window.location.search);
+        
+        // Check for error in URL
+        const urlError = queryParams.get('error') || hashParams.get('error');
+        if (urlError) {
+          console.error("Error found in URL:", urlError);
+          const errorDescription = queryParams.get('error_description') || hashParams.get('error_description');
+          throw new Error(`${urlError}: ${errorDescription || 'Unknown error'}`);
+        }
+
         // Supabase handles OAuth exchanging the code for a token
         // We just need to check if we have a session after we're redirected
+        console.log("Getting Supabase session");
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
+          console.error("Supabase session error:", error);
           throw error;
         }
         
+        console.log("Session data:", data.session ? "Session exists" : "No session found");
         if (data.session) {
           // Ensure the user profile exists in our profiles table
           const user = data.session.user;
+          console.log("User authenticated:", user.email);
           
           // Check if profile exists
+          console.log("Checking if profile exists for user:", user.id);
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -35,8 +53,12 @@ const GitHubCallback = () => {
             console.error('Error checking profile:', profileError);
           }
           
+          console.log("Profile data:", profileData ? "Profile exists" : "No profile found");
           // If profile doesn't exist, create it
           if (!profileData) {
+            console.log("Creating new profile for user:", user.id);
+            console.log("User metadata:", user.user_metadata);
+            
             const { error: insertError } = await supabase
               .from('profiles')
               .insert({
@@ -48,6 +70,8 @@ const GitHubCallback = () => {
               
             if (insertError) {
               console.error('Error creating profile:', insertError);
+            } else {
+              console.log("Profile created successfully");
             }
           }
           
@@ -55,6 +79,7 @@ const GitHubCallback = () => {
           const redirectPath = localStorage.getItem('authRedirect') || '/';
           localStorage.removeItem('authRedirect');
           
+          console.log("Redirecting to:", redirectPath);
           toast({
             title: "Signed in successfully",
             description: `Welcome${user.user_metadata.name ? ', ' + user.user_metadata.name : ''}!`,
@@ -64,6 +89,7 @@ const GitHubCallback = () => {
           setProcessing(false);
           navigate(redirectPath);
         } else {
+          console.error("No session available after authentication");
           throw new Error("No session available after authentication");
         }
       } catch (error) {

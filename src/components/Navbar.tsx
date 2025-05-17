@@ -12,9 +12,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const { user, signInWithGitHub, signOut, isAuthenticated } = useAuth();
+  
+  const handleGitHubSignIn = async () => {
+    try {
+      console.log("Initiating GitHub sign-in");
+      // Save current URL to redirect back after login
+      localStorage.setItem('authRedirect', window.location.pathname);
+      await signInWithGitHub();
+    } catch (error) {
+      console.error("GitHub sign-in error:", error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to sign in with GitHub. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
   
   return (
     <header className="w-full border-b">
@@ -50,7 +67,7 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline" onClick={signInWithGitHub} className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleGitHubSignIn} className="flex items-center gap-2">
               <Github className="h-4 w-4" />
               <span>Sign in with GitHub</span>
             </Button>
